@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALL4U</title>
+    <style>
+        :root {
+            --primary-color: #1e1e1e;
+            --secondary-color: #2a2a2a;
+            --accent-color: #007bff;
+            --text-color: #fff;
+        }
+        body {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            font-family: sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-gap: 20px;
+        }
+        .video-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .video-title {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .player-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+        .player-container.active {
+            display: block;
+        }
+        .youtube-player {
+            width: 100%;
+            height: auto;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
+        }
+        .youtube-player iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .action-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+        }
+        .action-bar svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--accent-color);
+            cursor: pointer;
+        }
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+        @media (min-width: 1024px) {
+            .container {
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="youtube-player" id="youtube-player"></div>
+        <div class="action-bar">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" onclick="likeVideo()">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54l-1.45 1.33z"/>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" onclick="dislikeVideo()">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54l-1.45 1.33z" transform="rotate(180 12 12)"/>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" onclick="commentVideo()">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6zm0 4h12v2H6z"/>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" onclick="shareVideo()">
+                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.3c.52-.33 1.2-.33 1.72 0l7.05 4.3c.05.23.09.46.09.7s-.04.47-.09.7l-7.05 4.3c-.52.33-1.2.33-1.72 0z"/>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" onclick="saveVideo()">
+                <path d="M19 21H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2zM11 11V9h2v2h-2zM11 15V13h2v2h-2z"/>
+            </svg>
+        </div>
+    </div>
+    <div class="container" id="video-container"></div>
+    <script>
+        const PROJECT_DB_GIST_ID = "YOUR_GIST_ID"; // Replace with your Gist ID
+        const videoContainer = document.getElementById('video-container');
+        const youtubePlayer = document.getElementById('youtube-player');
+        const playerContainer = document.querySelector('.player-container');
+
+        fetch('https://api.github.com/gists/' + PROJECT_DB_GIST_ID)
+            .then(response => response.json())
+            .then(data => {
+                const videos = JSON.parse(data.files["data.json"].content);
+                videos.forEach(video => {
+                    if (!video.url.includes('/shorts/')) {
+                        createVideoCard(video);
+                    }
+                });
+            });
+
+        function createVideoCard(video) {
+            const card = document.createElement('div');
+            card.classList.add('video-card');
+            card.innerHTML = `
+                <img src="https://img.youtube.com/vi/${video.videoId}/0.jpg" alt="${video.title}" class="video-thumbnail">
+                <div class="video-title">${video.title}</div>
+            `;
+            card.addEventListener('click', () => playVideo(video));
+            videoContainer.appendChild(card);
+        }
+
+        function playVideo(video) {
+            playerContainer.classList.add('active');
+            youtubePlayer.innerHTML = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${video.videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+        }
+
+        function likeVideo() {
+            // Replace with actual YouTube like link logic
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+        }
+        function dislikeVideo() {
+            // Replace with actual YouTube dislike link logic
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+        }
+        function commentVideo() {
+            // Replace with actual YouTube comment link logic
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+        }
+        function shareVideo() {
+            // Replace with actual YouTube share link logic
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+        }
+        function saveVideo() {
+            // Replace with actual YouTube save link logic
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+        }
+    </script>
+</body>
+</html>
